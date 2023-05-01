@@ -12,6 +12,11 @@ pub enum Token {
     LeftBracket,    // 左括弧
     RightBracket,   // 右括弧
     Comma,          // カンマ
+    Bool,
+    Null,
+    LeftBrace,
+    RightBrace,
+    Colon,
 }
 
 pub struct Tokenizer<'a> {
@@ -58,6 +63,63 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
                         }
                     }
                 }
+                'n' => {
+                    let mut str = String::new();
+                    let required_chars = ['u', 'l', 'l'];
+
+                    for &required_char in required_chars.iter() {
+                        if let Some(ch) = self.chars.peek() {
+                            if *ch == required_char {
+                                str.push(self.chars.next().unwrap());
+                            } else {
+                                return Err(TokenizerError::InvalidCharacter(c));
+                            }
+                        } else {
+                            return Err(TokenizerError::InvalidCharacter(c));
+                        }
+                    }
+
+                    tokens.push(Token::Null);
+                }
+                '{' => tokens.push(Token::LeftBrace),
+                '}' => tokens.push(Token::RightBrace),
+                ':' => tokens.push(Token::Colon),
+                't' => {
+                    let mut str = String::new();
+                    let required_chars = ['r', 'u', 'e'];
+
+                    for &required_char in required_chars.iter() {
+                        if let Some(ch) = self.chars.peek() {
+                            if *ch == required_char {
+                                str.push(self.chars.next().unwrap());
+                            } else {
+                                return Err(TokenizerError::InvalidCharacter(c));
+                            }
+                        } else {
+                            return Err(TokenizerError::InvalidCharacter(c));
+                        }
+                    }
+
+                    tokens.push(Token::Bool);
+                }
+                'f' => {
+                    let mut str = String::new();
+                    let required_chars = ['a', 'l', 's', 'e'];
+
+                    for &required_char in required_chars.iter() {
+                        if let Some(ch) = self.chars.peek() {
+                            if *ch == required_char {
+                                str.push(self.chars.next().unwrap());
+                            } else {
+                                return Err(TokenizerError::InvalidCharacter(c));
+                            }
+                        } else {
+                            return Err(TokenizerError::InvalidCharacter(c));
+                        }
+                    }
+
+                    tokens.push(Token::Bool);
+                }
                 '[' => tokens.push(Token::LeftBracket),
                 ']' => tokens.push(Token::RightBracket),
                 ',' => tokens.push(Token::Comma),
@@ -101,6 +163,51 @@ mod test {
                 Token::Comma,
                 Token::String("文字列2".to_string()),
                 Token::RightBracket,
+            ],
+            res
+        );
+    }
+    #[test]
+    fn boolean_tokenize() {
+        let test_str = r#"true"#;
+        let mut tokenizer = Tokenizer::new(test_str);
+        let res = tokenizer.tokenize().unwrap();
+
+        assert_eq!(vec![Token::Bool,], res);
+
+        let test_str = r#"false"#;
+        let mut tokenizer = Tokenizer::new(test_str);
+        let res = tokenizer.tokenize().unwrap();
+
+        assert_eq!(vec![Token::Bool,], res);
+    }
+
+    #[test]
+    fn null_tokenize() {
+        let test_str = r#"null"#;
+        let mut tokenizer = Tokenizer::new(test_str);
+        let res = tokenizer.tokenize().unwrap();
+
+        assert_eq!(vec![Token::Null], res);
+    }
+
+    #[test]
+    fn object_tokenize() {
+        let test_str = r#"
+          {
+            "key": "value"
+          }
+        "#;
+        let mut tokenizer = Tokenizer::new(test_str);
+        let res = tokenizer.tokenize().unwrap();
+
+        assert_eq!(
+            vec![
+                Token::LeftBrace,
+                Token::String("key".to_string()),
+                Token::Colon,
+                Token::String("value".to_string()),
+                Token::RightBrace
             ],
             res
         );
