@@ -12,7 +12,7 @@ pub enum Token {
     LeftBracket,    // 左括弧
     RightBracket,   // 右括弧
     Comma,          // カンマ
-    Bool,
+    Bool(bool),
     Null,
     LeftBrace,
     RightBrace,
@@ -100,7 +100,7 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
                         }
                     }
 
-                    tokens.push(Token::Bool);
+                    tokens.push(Token::Bool(true));
                 }
                 'f' => {
                     let mut str = String::new();
@@ -118,7 +118,7 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
                         }
                     }
 
-                    tokens.push(Token::Bool);
+                    tokens.push(Token::Bool(false));
                 }
                 '[' => tokens.push(Token::LeftBracket),
                 ']' => tokens.push(Token::RightBracket),
@@ -189,13 +189,13 @@ mod test {
         let mut tokenizer = Tokenizer::new(test_str);
         let res = tokenizer.tokenize().unwrap();
 
-        assert_eq!(vec![Token::Bool,], res);
+        assert_eq!(vec![Token::Bool(true)], res);
 
         let test_str = r#"false"#;
         let mut tokenizer = Tokenizer::new(test_str);
         let res = tokenizer.tokenize().unwrap();
 
-        assert_eq!(vec![Token::Bool,], res);
+        assert_eq!(vec![Token::Bool(false)], res);
     }
 
     #[test]
