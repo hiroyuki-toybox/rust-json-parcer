@@ -7,7 +7,8 @@ pub enum TokenizerError {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Number(f64), // 数値
+    Number(f64),    // 数値
+    String(String), // 文字列
 }
 
 pub struct Tokenizer<'a> {
@@ -41,6 +42,19 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
 
                     tokens.push(Token::Number(num.parse::<f64>().unwrap()));
                 }
+                '"' => {
+                    let mut str = String::new();
+
+                    while let Some(c) = self.chars.next() {
+                        match c {
+                            '"' => {
+                                tokens.push(Token::String(str));
+                                break;
+                            }
+                            _ => str.push(c),
+                        }
+                    }
+                }
                 _ => return Err(TokenizerError::InvalidCharacter(c)),
             }
         }
@@ -58,9 +72,12 @@ mod test {
         let mut tokenizer = Tokenizer::new("1");
         let res = tokenizer.tokenize().unwrap();
         assert_eq!(Token::Number(1.0), res[0]);
+    }
 
-        let mut tokenizer = Tokenizer::new("a");
-        let res = tokenizer.tokenize();
-        assert_eq!(Err(TokenizerError::InvalidCharacter('a')), res);
+    #[test]
+    fn string_tokenize() {
+        let mut tokenizer = Tokenizer::new("\"hello world\"");
+        let res = tokenizer.tokenize().unwrap();
+        assert_eq!(Token::String("hello world".to_string()), res[0]);
     }
 }
