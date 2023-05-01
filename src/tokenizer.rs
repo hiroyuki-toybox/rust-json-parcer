@@ -41,10 +41,10 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
 
         while let Some(c) = self.chars.next() {
             match c {
-                '0'..='9' => {
+                '0'..='9' | '+' | '-' | '.' => {
                     let mut num = c.to_string();
 
-                    while let Some('0'..='9') = self.chars.peek() {
+                    while let Some('0'..='9' | '.') = self.chars.peek() {
                         num.push(self.chars.next().unwrap());
                     }
 
@@ -141,6 +141,22 @@ mod test {
         let mut tokenizer = Tokenizer::new("1");
         let res = tokenizer.tokenize().unwrap();
         assert_eq!(Token::Number(1.0), res[0]);
+
+        let mut tokenizer = Tokenizer::new("-1");
+        let res = tokenizer.tokenize().unwrap();
+        assert_eq!(Token::Number(-1.0), res[0]);
+
+        let mut tokenizer = Tokenizer::new("+1");
+        let res = tokenizer.tokenize().unwrap();
+        assert_eq!(Token::Number(1.0), res[0]);
+
+        let mut tokenizer = Tokenizer::new(".1");
+        let res = tokenizer.tokenize().unwrap();
+        assert_eq!(Token::Number(0.1), res[0]);
+
+        let mut tokenizer = Tokenizer::new("1.6");
+        let res = tokenizer.tokenize().unwrap();
+        assert_eq!(Token::Number(1.6), res[0]);
     }
 
     #[test]
