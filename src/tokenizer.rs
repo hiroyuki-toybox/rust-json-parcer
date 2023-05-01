@@ -9,6 +9,9 @@ pub enum TokenizerError {
 pub enum Token {
     Number(f64),    // 数値
     String(String), // 文字列
+    LeftBracket,    // 左括弧
+    RightBracket,   // 右括弧
+    Comma,          // カンマ
 }
 
 pub struct Tokenizer<'a> {
@@ -55,6 +58,10 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
                         }
                     }
                 }
+                '[' => tokens.push(Token::LeftBracket),
+                ']' => tokens.push(Token::RightBracket),
+                ',' => tokens.push(Token::Comma),
+                ' ' | '\n' | '\t' => {}
                 _ => return Err(TokenizerError::InvalidCharacter(c)),
             }
         }
@@ -79,5 +86,23 @@ mod test {
         let mut tokenizer = Tokenizer::new("\"hello world\"");
         let res = tokenizer.tokenize().unwrap();
         assert_eq!(Token::String("hello world".to_string()), res[0]);
+    }
+
+    #[test]
+    fn array_tokenize() {
+        let test_str = r#"["文字列1", "文字列2"]"#;
+        let mut tokenizer = Tokenizer::new(test_str);
+        let res = tokenizer.tokenize().unwrap();
+
+        assert_eq!(
+            vec![
+                Token::LeftBracket,
+                Token::String("文字列1".to_string()),
+                Token::Comma,
+                Token::String("文字列2".to_string()),
+                Token::RightBracket,
+            ],
+            res
+        );
     }
 }
