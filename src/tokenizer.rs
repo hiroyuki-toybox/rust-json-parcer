@@ -17,6 +17,7 @@ pub enum Token {
     LeftBrace,
     RightBrace,
     Colon,
+    End,
 }
 
 pub struct Tokenizer<'a> {
@@ -64,14 +65,11 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
                     }
                 }
                 'n' => {
-                    let mut str = String::new();
-                    let required_chars = ['u', 'l', 'l'];
+                    let required_chars = vec!['u', 'l', 'l'];
 
-                    for &required_char in required_chars.iter() {
-                        if let Some(ch) = self.chars.peek() {
-                            if *ch == required_char {
-                                str.push(self.chars.next().unwrap());
-                            } else {
+                    for req in required_chars {
+                        if let Some(c) = self.chars.next() {
+                            if req != c {
                                 return Err(TokenizerError::InvalidCharacter(c));
                             }
                         } else {
@@ -128,6 +126,8 @@ impl TokenizerTrait<'_> for Tokenizer<'_> {
             }
         }
 
+        tokens.push(Token::End);
+
         Ok(tokens)
     }
 }
@@ -179,6 +179,7 @@ mod test {
                 Token::Comma,
                 Token::String("文字列2".to_string()),
                 Token::RightBracket,
+                Token::End
             ],
             res
         );
@@ -189,13 +190,13 @@ mod test {
         let mut tokenizer = Tokenizer::new(test_str);
         let res = tokenizer.tokenize().unwrap();
 
-        assert_eq!(vec![Token::Bool(true)], res);
+        assert_eq!(vec![Token::Bool(true), Token::End], res);
 
         let test_str = r#"false"#;
         let mut tokenizer = Tokenizer::new(test_str);
         let res = tokenizer.tokenize().unwrap();
 
-        assert_eq!(vec![Token::Bool(false)], res);
+        assert_eq!(vec![Token::Bool(false), Token::End], res);
     }
 
     #[test]
@@ -204,7 +205,7 @@ mod test {
         let mut tokenizer = Tokenizer::new(test_str);
         let res = tokenizer.tokenize().unwrap();
 
-        assert_eq!(vec![Token::Null], res);
+        assert_eq!(vec![Token::Null, Token::End], res);
     }
 
     #[test]
@@ -223,7 +224,8 @@ mod test {
                 Token::String("key".to_string()),
                 Token::Colon,
                 Token::String("value".to_string()),
-                Token::RightBrace
+                Token::RightBrace,
+                Token::End
             ],
             res
         );
@@ -380,6 +382,7 @@ mod test {
                 Token::Colon,
                 Token::String(r#"\u3053\u3093\u306B\u3061\u306F"#.to_string()),
                 Token::RightBrace,
+                Token::End
             ],
             res
         );
