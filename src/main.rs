@@ -1,5 +1,6 @@
 use crate::tokenizer::{Tokenizer, TokenizerTrait};
 
+mod parser;
 mod tokenizer;
 
 fn main() {
