@@ -20,7 +20,7 @@
 use std::iter::Peekable;
 use std::vec::IntoIter;
 
-use crate::tokenizer::{Token, TokenizerError};
+use crate::tokenizer::Token;
 
 #[derive(Debug, PartialEq, Clone)]
 struct Member {
@@ -29,17 +29,13 @@ struct Member {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct Object {
+pub struct Object {
     members: Vec<Member>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct Array {
+pub struct Array {
     elements: Vec<Element>,
-}
-
-enum NodeChildren {
-    ObjectLiteral,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -50,12 +46,10 @@ pub enum Element {
     Null,
     Object(Object),
     Array(Array),
-    End,
 }
 
 pub struct Parser {
     tokens: Peekable<IntoIter<Token>>,
-    position: usize,
 }
 
 #[derive(Debug)]
@@ -69,14 +63,11 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         let tokens = tokens.into_iter().peekable();
 
-        Self {
-            tokens,
-            position: 0,
-        }
+        Self { tokens }
     }
 
     pub fn parse(&mut self) -> Result<Element, ParseError> {
-        let mut node = self.parse_element().expect("parse element error");
+        let node = self.parse_element().expect("parse element error");
 
         Ok(node)
     }
@@ -102,9 +93,7 @@ impl Parser {
 
         // println!("{:?}", members);
 
-        let node = Element::Object(Object {
-            members: members.clone(),
-        });
+        let node = Element::Object(Object { members });
 
         if let Token::RightBrace = self.tokens.next().expect("next token error") {
             return Ok(node);
