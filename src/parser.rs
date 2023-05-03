@@ -33,6 +33,7 @@ struct Object {
     members: Vec<Member>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 struct Array {
     elements: Vec<Element>,
 }
@@ -48,7 +49,7 @@ pub enum Element {
     Boolean(bool),
     Null,
     Object(Object),
-    Array,
+    Array(Array),
     End,
 }
 
@@ -87,10 +88,7 @@ impl Parser {
                 Token::Bool(val) => Element::Boolean(val),
                 Token::Null => Element::Null,
                 Token::LeftBrace => self.parse_object().expect("parse object error"),
-                Token::LeftBracket => {
-                    // arrayのパース
-                    todo!()
-                }
+                Token::LeftBracket => self.parse_array().expect("parse array error"),
                 _ => return Err(ParseError::UnexpectedToken(token.clone())),
             },
             _ => return Err(ParseError::ParseError),
@@ -144,6 +142,38 @@ impl Parser {
             },
             _ => Err(ParseError::ParseError),
         }
+    }
+
+    fn parse_array(&mut self) -> Result<Element, ParseError> {
+        let elements: Vec<Element> = self.parse_elements().expect("parse elements error");
+
+        let node = Element::Array(Array { elements });
+
+        if let Token::RightBracket = self.tokens.next().expect("next token error") {
+            return Ok(node);
+        };
+
+        Err(ParseError::ParseError)
+    }
+
+    fn parse_elements(&mut self) -> Result<Vec<Element>, ParseError> {
+        let mut elements: Vec<Element> = vec![];
+
+        while let Some(tok) = self.tokens.peek().cloned() {
+            // Commaだったら進める
+            if let Token::Comma = tok {
+                self.tokens.next();
+            }
+            if let Token::RightBracket = self.tokens.peek().unwrap() {
+                break;
+            }
+            let element = self
+                .parse_element()
+                .expect("parse element error in parse_elements");
+            elements.push(element);
+        }
+
+        Ok(elements)
     }
 }
 
@@ -275,6 +305,76 @@ mod test {
                         }),
                     }
                 ]
+            })
+        );
+    }
+
+    #[test]
+    fn parse_array() {
+        let mut parser = get_parser(
+            r#"
+            [1,2,3]
+      "#
+            .to_string(),
+        );
+
+        let result = parser.parse().unwrap();
+        println!("{:?}", result);
+        assert_eq!(
+            result,
+            Element::Array(Array {
+                elements: vec![
+                    Element::Number(1.0),
+                    Element::Number(2.0),
+                    Element::Number(3.0)
+                ]
+            })
+        );
+
+        let mut parser = get_parser(
+            r#"
+            [1, "string", null]
+      "#
+            .to_string(),
+        );
+
+        let result = parser.parse().unwrap();
+        println!("{:?}", result);
+        assert_eq!(
+            result,
+            Element::Array(Array {
+                elements: vec![
+                    Element::Number(1.0),
+                    Element::String("string".to_string()),
+                    Element::Null
+                ]
+            })
+        );
+
+        let mut parser = get_parser(
+            r#"
+            {
+              "key": [1, "string", null]
+            }
+      "#
+            .to_string(),
+        );
+
+        let result = parser.parse().unwrap();
+        println!("{:?}", result);
+        assert_eq!(
+            result,
+            Element::Object(Object {
+                members: vec![Member {
+                    key: "key".to_string(),
+                    value: Element::Array(Array {
+                        elements: vec![
+                            Element::Number(1.0),
+                            Element::String("string".to_string()),
+                            Element::Null
+                        ]
+                    })
+                }]
             })
         );
     }
