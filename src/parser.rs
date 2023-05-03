@@ -10,8 +10,8 @@
 // elements = element , (',' , element)*
 
 // string = '"' , (characters)? , '"'
-// characters = characters
-// number = number
+// characters =
+// number =
 
 // boolean = 'true' | 'false'
 
@@ -75,7 +75,7 @@ impl Parser {
     }
 
     pub fn parse(&mut self) -> Result<Element, ParseError> {
-        let mut node = self.parse_element()?;
+        let mut node = self.parse_element().expect("parse element error");
 
         Ok(node)
     }
@@ -86,7 +86,7 @@ impl Parser {
                 Token::Number(val) => Element::Number(val),
                 Token::Bool(val) => Element::Boolean(val),
                 Token::Null => Element::Null,
-                Token::LeftBrace => self.parse_object()?,
+                Token::LeftBrace => self.parse_object().expect("parse object error"),
                 Token::LeftBracket => {
                     // arrayのパース
                     todo!()
@@ -100,13 +100,15 @@ impl Parser {
     }
 
     fn parse_object(&mut self) -> Result<Element, ParseError> {
-        let members = self.parse_members()?;
+        let members = self.parse_members().expect("parse members error in object");
 
-        let node = Element::Object(Object { members });
+        // println!("{:?}", members);
 
-        let tok = self.tokens.next().unwrap();
+        let node = Element::Object(Object {
+            members: members.clone(),
+        });
 
-        if let Token::End | Token::Comma = tok {
+        if let Token::RightBrace = self.tokens.next().expect("next token error") {
             return Ok(node);
         };
 
@@ -122,10 +124,9 @@ impl Parser {
                 self.tokens.next();
             }
             if let Token::RightBrace = self.tokens.peek().unwrap() {
-                self.tokens.next();
                 break;
             }
-            let member = self.parse_member()?;
+            let member = self.parse_member().expect("parse member error in members");
             members.push(member);
         }
 
@@ -135,13 +136,10 @@ impl Parser {
     fn parse_member(&mut self) -> Result<Member, ParseError> {
         match self.tokens.next() {
             Some(Token::String(key)) => match self.tokens.next() {
-                Some(Token::Colon) => match self.tokens.next() {
-                    Some(Token::String(val)) => Ok(Member {
-                        key,
-                        value: Element::String(val),
-                    }),
-                    _ => Err(ParseError::ParseError),
-                },
+                Some(Token::Colon) => {
+                    let value = self.parse_element().expect("parse element error in member");
+                    Ok(Member { key, value })
+                }
                 _ => Err(ParseError::ParseError),
             },
             _ => Err(ParseError::ParseError),
@@ -171,18 +169,15 @@ mod test {
 
         println!("{:?}", result);
 
-        // assert_eq!(
-        //     result.kind,
-        //     NodeKind::StringLiteral("これは文字列".to_string())
-        // );
+        assert_eq!(result, Element::String("これは文字列".to_string()),);
     }
 
     #[test]
     fn parse_object() {
         let mut parser = get_parser(
             r#"
-      {}
-      "#
+        {}
+        "#
             .to_string(),
         );
 
@@ -192,10 +187,10 @@ mod test {
 
         let mut parser = get_parser(
             r#"
-      {
-        "key": "value"
-      }
-      "#
+        {
+          "key": "value"
+        }
+        "#
             .to_string(),
         );
 
@@ -208,6 +203,78 @@ mod test {
                     key: "key".to_string(),
                     value: Element::String("value".to_string()),
                 }]
+            })
+        );
+
+        // けつカンマあり
+        let mut parser = get_parser(
+            r#"
+      {
+        "key": "value",
+        "key2": {
+          "key3": "value3",
+        },
+      }
+      "#
+            .to_string(),
+        );
+
+        let result = parser.parse().unwrap();
+        println!("{:?}", result);
+        assert_eq!(
+            result,
+            Element::Object(Object {
+                members: vec![
+                    Member {
+                        key: "key".to_string(),
+                        value: Element::String("value".to_string()),
+                    },
+                    Member {
+                        key: "key2".to_string(),
+                        value: Element::Object(Object {
+                            members: vec![Member {
+                                key: "key3".to_string(),
+                                value: Element::String("value3".to_string()),
+                            }]
+                        }),
+                    }
+                ]
+            })
+        );
+
+        // けつカンマなし
+        let mut parser = get_parser(
+            r#"
+      {
+        "key": "value",
+        "key2": {
+          "key3": "value3",
+        }
+      }
+      "#
+            .to_string(),
+        );
+
+        let result = parser.parse().unwrap();
+        println!("{:?}", result);
+        assert_eq!(
+            result,
+            Element::Object(Object {
+                members: vec![
+                    Member {
+                        key: "key".to_string(),
+                        value: Element::String("value".to_string()),
+                    },
+                    Member {
+                        key: "key2".to_string(),
+                        value: Element::Object(Object {
+                            members: vec![Member {
+                                key: "key3".to_string(),
+                                value: Element::String("value3".to_string()),
+                            }]
+                        }),
+                    }
+                ]
             })
         );
     }
